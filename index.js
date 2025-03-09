@@ -16,17 +16,14 @@ const defaultConfig = {
   'silent': false,
 };
 
-const keySalt = crypto.randomBytes(32);
-const ivSalt = crypto.randomBytes(32);
-
 // As we can't detect the wrong password with AES-CBC,
 // so adding an empty tag and check it when decrption.
 const knownPrefix = "<hbe-prefix></hbe-prefix>";
 
 // disable log
-var silent = false;
+let silent = false;
 // use default theme
-var theme = 'default';
+let theme = 'default';
 
 hexo.extend.filter.register('after_post_render', (data) => {
   const tagEncryptPairs = [];
@@ -43,7 +40,7 @@ hexo.extend.filter.register('after_post_render', (data) => {
     hexo.config.encrypt = [];
   }
 
-  if(('encrypt' in hexo.config) && ('tags' in hexo.config.encrypt)){
+  if (('encrypt' in hexo.config) && ('tags' in hexo.config.encrypt)) {
     hexo.config.encrypt.tags.forEach((tagObj) => {
       tagEncryptPairs[tagObj.name] = tagObj.password;
     });
@@ -58,7 +55,7 @@ hexo.extend.filter.register('after_post_render', (data) => {
     });
   }
 
-  if(password == undefined){
+  if (password == undefined) {
     return data;
   }
 
@@ -67,30 +64,19 @@ hexo.extend.filter.register('after_post_render', (data) => {
   // make sure toc can work.
   data.origin = data.content;
 
-  // Let's rock n roll
   const config = Object.assign(defaultConfig, hexo.config.encrypt, data);
   silent = config.silent;
   theme = config.theme.trim().toLowerCase();
 
-  // deprecate the template keyword
-  if (config.template) {
-    dlog('warn', 'Looks like you use a deprecated property "template" to set up template, consider to use "theme"? See https://github.com/D0n9X1n/hexo-blog-encrypt#encrypt-theme');
-  }
-
   // read theme from file
   let template = fs.readFileSync(path.resolve(__dirname, `./lib/hbe.${theme}.html`)).toString();
-
-  if (tagUsed === false) {
-    dlog('info', `hexo-blog-encrypt: encrypting "${data.title.trim()}" based on the password configured in Front-matter with theme: ${theme}.`);
-  } else {
-    dlog('info', `hexo-blog-encrypt: encrypting "${data.title.trim()}" based on Tag: "${tagUsed}" with theme ${theme}.`);
-  }
 
   data.content = knownPrefix + data.content.trim();
   data.encrypt = true;
 
-  const key = crypto.pbkdf2Sync(password, keySalt, 1024, 32, 'sha256');
-  const iv = crypto.pbkdf2Sync(password, ivSalt, 512, 16, 'sha256');
+  const keySalt = crypto.randomBytes(18);
+  const key = crypto.pbkdf2Sync(password, keySalt, 100000, 32, 'sha256');
+  const iv = crypto.randomBytes(16);
 
   const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
   const hmac = crypto.createHmac('sha256', key);
@@ -106,8 +92,8 @@ hexo.extend.filter.register('after_post_render', (data) => {
     .replace(/{{hbeWrongHashMessage}}/g, config.wrong_hash_message)
     .replace(/{{hbeMessage}}/g, config.message)
     .replace(/{{hbeKeySalt}}/g, keySalt.toString('hex'))
-    .replace(/{{hbeIvSalt}}/g, ivSalt.toString('hex'));
-  data.content += `<script data-pjax src="${hexo.config.root}lib/hbe.js"></script><link href="${hexo.config.root}css/hbe.style.css" rel="stylesheet" type="text/css">`;
+    .replace(/{{hbeIvSalt}}/g, iv.toString('hex'));
+  data.content += `<script data-pjax src="${hexo.config.root}js/hbe.js"></script><link href="${hexo.config.root}css/hbe.style.css" rel="stylesheet" type="text/css">`;
   data.excerpt = data.more = config.abstract;
 
   return data;
@@ -120,55 +106,6 @@ hexo.extend.generator.register('hexo-blog-encrypt', () => [
   },
   {
     'data': () => fs.createReadStream(path.resolve(__dirname, './lib/hbe.js')),
-    'path': 'lib/hbe.js',
+    'path': 'js/hbe.js',
   },
 ]);
-
-// log function
-function dlog(level, x) {
-  switch (level) {
-    case 'warn':
-      log.warn(x);
-      break;
-
-    case 'info':
-    default:
-      if (silent) {
-        return;
-      }
-
-      log.info(x);
-  }
-}
-
-// Utils functions
-function textToArray(s) {
-  var i = s.length;
-  var n = 0;
-  var ba = new Array()
-
-  for (var j = 0; j < i;) {
-    var c = s.codePointAt(j);
-    if (c < 128) {
-      ba[n++] = c;
-      j++;
-    } else if ((c > 127) && (c < 2048)) {
-      ba[n++] = (c >> 6) | 192;
-      ba[n++] = (c & 63) | 128;
-      j++;
-    } else if ((c > 2047) && (c < 65536)) {
-      ba[n++] = (c >> 12) | 224;
-      ba[n++] = ((c >> 6) & 63) | 128;
-      ba[n++] = (c & 63) | 128;
-      j++;
-    } else {
-      ba[n++] = (c >> 18) | 240;
-      ba[n++] = ((c >> 12) & 63) | 128;
-      ba[n++] = ((c >> 6) & 63) | 128;
-      ba[n++] = (c & 63) | 128;
-      j += 2;
-    }
-  }
-
-  return new Uint8Array(ba);
-}
