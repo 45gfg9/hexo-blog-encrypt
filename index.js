@@ -25,7 +25,7 @@ hexo.extend.filter.register('after_post_render', (data) => {
   let tagUsed = false;
 
   // use a empty password to disable category encryption
-  if (password === "") {
+  if (password === '') {
     return data;
   }
 
@@ -66,23 +66,23 @@ hexo.extend.filter.register('after_post_render', (data) => {
   data.content = data.content.trim();
   data.encrypt = true;
 
-  const keySalt = crypto.randomBytes(18);
-  const key = crypto.pbkdf2Sync(new TextEncoder().encode(password), keySalt, 100000, 32, 'sha256');
+  const salt = crypto.randomBytes(18);
+  const key = crypto.pbkdf2Sync(new TextEncoder().encode(password), salt, 100000, 32, 'sha256');
   const iv = crypto.randomBytes(16);
 
   const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
 
-  const encryptedData = Buffer.concat([
+  const ciphertext = Buffer.concat([
     cipher.update(data.content, 'utf8'),
     cipher.final(),
     cipher.getAuthTag(),
   ]).toString('base64');
 
-  data.content = template.replace(/{{hbeEncryptedData}}/g, encryptedData)
+  data.content = template.replace(/{{hbeCiphertext}}/g, ciphertext)
     .replace(/{{hbeWrongPassMessage}}/g, config.wrong_pass_message)
     .replace(/{{hbeMessage}}/g, config.message)
-    .replace(/{{hbeKeySalt}}/g, keySalt.toString('base64'))
-    .replace(/{{hbeIvSalt}}/g, iv.toString('base64'));
+    .replace(/{{hbeSalt}}/g, salt.toString('base64'))
+    .replace(/{{hbeIv}}/g, iv.toString('base64'));
   data.content += `<script data-pjax src="${hexo.config.root}js/hbe.js"></script><link href="${hexo.config.root}css/hbe.style.css" rel="stylesheet" type="text/css">`;
   data.excerpt = data.more = config.abstract;
 
