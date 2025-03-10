@@ -68,7 +68,7 @@ hexo.extend.filter.register('after_post_render', (data) => {
 
   const salt = crypto.randomBytes(18);
   const key = crypto.pbkdf2Sync(new TextEncoder().encode(password), salt, 100000, 32, 'sha256');
-  const iv = crypto.randomBytes(16);
+  const iv = crypto.randomBytes(12);
 
   const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
 
