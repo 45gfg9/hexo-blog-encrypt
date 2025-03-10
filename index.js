@@ -2,26 +2,19 @@
 
 'use strict';
 
-const crypto = require('crypto');
-const fs = require('fs');
-const path = require('path');
-const log = hexo.log;
+const crypto = require('node:crypto');
+const fs = require('node:fs');
+const path = require('node:path');
+const { Buffer } = require('node:buffer');
 
 const defaultConfig = {
   'abstract': 'Here\'s something encrypted, password is required to continue reading.',
   'message': 'Hey, password is required here.',
   'theme': 'default',
   'wrong_pass_message': 'Oh, this is an invalid password. Check and try again, please.',
-  'wrong_hash_message': 'OOPS, these decrypted content may changed, but you can still have a look.',
   'silent': false,
 };
 
-// As we can't detect the wrong password with AES-CBC,
-// so adding an empty tag and check it when decrption.
-const knownPrefix = "<hbe-prefix></hbe-prefix>";
-
-// disable log
-let silent = false;
 // use default theme
 let theme = 'default';
 
@@ -65,34 +58,31 @@ hexo.extend.filter.register('after_post_render', (data) => {
   data.origin = data.content;
 
   const config = Object.assign(defaultConfig, hexo.config.encrypt, data);
-  silent = config.silent;
   theme = config.theme.trim().toLowerCase();
 
   // read theme from file
-  let template = fs.readFileSync(path.resolve(__dirname, `./lib/hbe.${theme}.html`)).toString();
+  const template = fs.readFileSync(path.resolve(__dirname, `./lib/hbe.${theme}.html`)).toString();
 
-  data.content = knownPrefix + data.content.trim();
+  data.content = data.content.trim();
   data.encrypt = true;
 
   const keySalt = crypto.randomBytes(18);
-  const key = crypto.pbkdf2Sync(password, keySalt, 100000, 32, 'sha256');
+  const key = crypto.pbkdf2Sync(new TextEncoder().encode(password), keySalt, 100000, 32, 'sha256');
   const iv = crypto.randomBytes(16);
 
-  const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
-  const hmac = crypto.createHmac('sha256', key);
+  const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
 
-  let encryptedData = cipher.update(data.content, 'utf8', 'hex');
-  hmac.update(data.content, 'utf8');
-  encryptedData += cipher.final('hex');
-  const hmacDigest = hmac.digest('hex');
+  const encryptedData = Buffer.concat([
+    cipher.update(data.content, 'utf8'),
+    cipher.final(),
+    cipher.getAuthTag(),
+  ]).toString('base64');
 
   data.content = template.replace(/{{hbeEncryptedData}}/g, encryptedData)
-    .replace(/{{hbeHmacDigest}}/g, hmacDigest)
     .replace(/{{hbeWrongPassMessage}}/g, config.wrong_pass_message)
-    .replace(/{{hbeWrongHashMessage}}/g, config.wrong_hash_message)
     .replace(/{{hbeMessage}}/g, config.message)
-    .replace(/{{hbeKeySalt}}/g, keySalt.toString('hex'))
-    .replace(/{{hbeIvSalt}}/g, iv.toString('hex'));
+    .replace(/{{hbeKeySalt}}/g, keySalt.toString('base64'))
+    .replace(/{{hbeIvSalt}}/g, iv.toString('base64'));
   data.content += `<script data-pjax src="${hexo.config.root}js/hbe.js"></script><link href="${hexo.config.root}css/hbe.style.css" rel="stylesheet" type="text/css">`;
   data.excerpt = data.more = config.abstract;
 
