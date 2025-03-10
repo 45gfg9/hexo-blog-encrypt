@@ -19,7 +19,7 @@ const defaultConfig = {
 let theme = 'default';
 
 hexo.extend.filter.register('after_post_render', (data) => {
-  const tagEncryptPairs = [];
+  const tagEncryptPairs = {};
 
   let password = data.password;
   let tagUsed = false;
@@ -41,14 +41,14 @@ hexo.extend.filter.register('after_post_render', (data) => {
 
   if (data.tags) {
     data.tags.forEach((cTag) => {
-      if (tagEncryptPairs.hasOwnProperty(cTag.name)) {
+      if (tagEncryptPairs[cTag.name]) {
         tagUsed = password ? tagUsed : cTag.name;
         password = password || tagEncryptPairs[cTag.name];
       }
     });
   }
 
-  if (password == undefined) {
+  if (!password) {
     return data;
   }
 
@@ -61,7 +61,7 @@ hexo.extend.filter.register('after_post_render', (data) => {
   theme = config.theme.trim().toLowerCase();
 
   // read theme from file
-  const template = fs.readFileSync(path.resolve(__dirname, `./lib/hbe.${theme}.html`)).toString();
+  const template = fs.readFileSync(path.resolve(__dirname, `lib/hbe.${theme}.html`)).toString();
 
   data.content = data.content.trim();
   data.encrypt = true;
@@ -91,11 +91,11 @@ hexo.extend.filter.register('after_post_render', (data) => {
 
 hexo.extend.generator.register('hexo-blog-encrypt', () => [
   {
-    'data': () => fs.createReadStream(path.resolve(__dirname, `./lib/hbe.style.css`)),
+    'data': () => fs.createReadStream(path.resolve(__dirname, `lib/hbe.style.css`)),
     'path': `css/hbe.style.css`,
   },
   {
-    'data': () => fs.createReadStream(path.resolve(__dirname, './lib/hbe.js')),
+    'data': () => fs.createReadStream(path.resolve(__dirname, 'lib/hbe.js')),
     'path': 'js/hbe.js',
   },
 ]);
