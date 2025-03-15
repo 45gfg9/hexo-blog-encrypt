@@ -28,6 +28,7 @@ Some other changes are made:
 
 - If `encrypt.wrong_pass_message` is explicitly set to an empty string, the plugin will not call `alert` but show a visual flash instead.
 - Fix bug where the default config would be overwritten and applied to all subsequent encryption.
+- Fix the `markdown-body` class not being added to the body element, breaking some styles.
 
 ## License
 
