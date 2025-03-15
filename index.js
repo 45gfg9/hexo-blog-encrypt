@@ -16,20 +16,16 @@ const defaultConfig = {
 
 hexo.extend.filter.register('after_post_render', (data) => {
   let password = data.password;
-  let tagUsed = false;
 
   // use a empty password to disable category encryption
   if (password === '') {
     return data;
   }
 
-  data.tags?.forEach(({ name }) => {
-    const tagPassword = hexo.config.encrypt?.tags?.find(({ name: tagName }) => tagName === name)?.password;
-    if (tagPassword) {
-      tagUsed = password ? tagUsed : name;
-      password ||= tagPassword;
-    }
-  });
+  // if the post has a password, use it;
+  // otherwise, use the password of the first tag that has a password configured.
+  // data.tags: { name: string }[]?
+  data.tags?.forEach(({ name }) => password ||= hexo.config.encrypt?.tags?.find((t) => t.name === name && t.password)?.password);
 
   if (!password) {
     return data;
