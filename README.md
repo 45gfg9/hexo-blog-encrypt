@@ -24,6 +24,10 @@ npm install git+https://github.com/45gfg9/hexo-blog-encrypt.git
   - To be clear, the last commit of the original code fixed this, but this change was not included in the npm package.
 - Used a proper PBKDF2 iteration count (100,000) instead of 1,024. Seriously, what the fuck?
 
+Some other changes are made:
+
+- If `encrypt.wrong_pass_message` is explicitly set to an empty string, the plugin will not call `alert` but show a visual flash instead.
+
 ## License
 
 See [LICENSE](LICENSE) file.

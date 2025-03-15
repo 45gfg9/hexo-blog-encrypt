@@ -165,7 +165,16 @@
 	-webkit-transform: translate3d(0, -100%, 0);
 	transform: translate3d(0, -100%, 0);
 	-webkit-transition: -webkit-transform 0.2s;
-	transition: transform 0.2s, background-color 0.2s ease-in-out;
+	transition: transform 0.2s;
+}
+
+@keyframes flashInvalid {
+	0% { background: #f44336; }
+	100% { background: #666666; }
+}
+
+.hbe-input-label-default.hbe-invalid::before {
+	animation: flashInvalid 0.2s ease-out;
 }
 
 .hbe-input-label-default::after {
@@ -174,10 +183,6 @@
 	top: 100%;
 	-webkit-transition: opacity 0.2s;
 	transition: opacity 0.2s;
-}
-
-.hbe-input-label-default.hbe-invalid::before {
-	background: #f44336;
 }
 
 .hbe-input-label-content-default {
