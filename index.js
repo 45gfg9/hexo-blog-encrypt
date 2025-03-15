@@ -15,8 +15,6 @@ const defaultConfig = {
 };
 
 hexo.extend.filter.register('after_post_render', (data) => {
-  const tagEncryptPairs = {};
-
   let password = data.password;
   let tagUsed = false;
 
@@ -25,30 +23,17 @@ hexo.extend.filter.register('after_post_render', (data) => {
     return data;
   }
 
-  if (hexo.config.encrypt === undefined) {
-    hexo.config.encrypt = [];
-  }
-
-  if (('encrypt' in hexo.config) && ('tags' in hexo.config.encrypt)) {
-    hexo.config.encrypt.tags.forEach((tagObj) => {
-      tagEncryptPairs[tagObj.name] = tagObj.password;
-    });
-  }
-
-  if (data.tags) {
-    data.tags.forEach((cTag) => {
-      if (tagEncryptPairs[cTag.name]) {
-        tagUsed = password ? tagUsed : cTag.name;
-        password = password || tagEncryptPairs[cTag.name];
-      }
-    });
-  }
+  data.tags?.forEach(({ name }) => {
+    const tagPassword = hexo.config.encrypt?.tags?.find(({ name: tagName }) => tagName === name)?.password;
+    if (tagPassword) {
+      tagUsed = password ? tagUsed : name;
+      password ||= tagPassword;
+    }
+  });
 
   if (!password) {
     return data;
   }
-
-  password = password.toString();
 
   // make sure toc can work.
   data.origin = data.content;
@@ -85,13 +70,10 @@ hexo.extend.filter.register('after_post_render', (data) => {
   return data;
 }, 1000);
 
-hexo.extend.generator.register('hexo-blog-encrypt', () => [
-  {
-    data: () => fs.createReadStream(path.resolve(__dirname, `lib/hbe.style.css`)),
-    path: `css/hbe.style.css`,
-  },
-  {
-    data: () => fs.createReadStream(path.resolve(__dirname, 'lib/hbe.js')),
-    path: 'js/hbe.js',
-  },
-]);
+hexo.extend.generator.register('hexo-blog-encrypt', () => [{
+  data() { return fs.createReadStream(path.resolve(__dirname, `lib/hbe.style.css`)); },
+  path: `css/hbe.style.css`,
+}, {
+  data() { return fs.createReadStream(path.resolve(__dirname, 'lib/hbe.js')); },
+  path: 'js/hbe.js',
+}]);
