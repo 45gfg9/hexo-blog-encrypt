@@ -38,11 +38,10 @@ hexo.extend.filter.register('after_post_render', (data) => {
   // make sure toc can work.
   data.origin = data.content;
 
-  const config = Object.assign(defaultConfig, hexo.config.encrypt, data);
-  const theme = config.theme.trim().toLowerCase();
+  const { abstract, message, theme, wrong_pass_message } = Object.assign({}, defaultConfig, hexo.config.encrypt, data);
 
   // read theme from file
-  const template = fs.readFileSync(path.resolve(__dirname, `lib/hbe.${theme}.html`)).toString();
+  const template = fs.readFileSync(path.resolve(__dirname, `lib/hbe.${theme.trim().toLowerCase()}.html`), 'utf8');
 
   data.content = data.content.trim();
   data.encrypt = true;
@@ -60,12 +59,12 @@ hexo.extend.filter.register('after_post_render', (data) => {
   ]).toString('base64');
 
   data.content = template.replace(/{{hbeCiphertext}}/g, ciphertext)
-    .replace(/{{hbeWrongPassMessage}}/g, config.wrong_pass_message)
-    .replace(/{{hbeMessage}}/g, config.message)
+    .replace(/{{hbeWrongPassMessage}}/g, wrong_pass_message)
+    .replace(/{{hbeMessage}}/g, message)
     .replace(/{{hbeSalt}}/g, salt.toString('base64'))
     .replace(/{{hbeIv}}/g, iv.toString('base64'));
   data.content += `<script data-pjax src="${hexo.config.root}js/hbe.js"></script><link href="${hexo.config.root}css/hbe.style.css" rel="stylesheet" type="text/css">`;
-  data.excerpt = data.more = config.abstract;
+  data.excerpt = data.more = abstract;
 
   return data;
 }, 1000);
