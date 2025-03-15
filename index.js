@@ -8,15 +8,11 @@ const path = require('node:path');
 const { Buffer } = require('node:buffer');
 
 const defaultConfig = {
-  'abstract': 'Here\'s something encrypted, password is required to continue reading.',
-  'message': 'Hey, password is required here.',
-  'theme': 'default',
-  'wrong_pass_message': 'Oh, this is an invalid password. Check and try again, please.',
-  'silent': false,
+  abstract: 'Here\'s something encrypted, password is required to continue reading.',
+  message: 'Hey, password is required here.',
+  theme: 'default',
+  wrong_pass_message: 'Oh, this is an invalid password. Check and try again, please.',
 };
-
-// use default theme
-let theme = 'default';
 
 hexo.extend.filter.register('after_post_render', (data) => {
   const tagEncryptPairs = {};
@@ -58,7 +54,7 @@ hexo.extend.filter.register('after_post_render', (data) => {
   data.origin = data.content;
 
   const config = Object.assign(defaultConfig, hexo.config.encrypt, data);
-  theme = config.theme.trim().toLowerCase();
+  const theme = config.theme.trim().toLowerCase();
 
   // read theme from file
   const template = fs.readFileSync(path.resolve(__dirname, `lib/hbe.${theme}.html`)).toString();
@@ -91,11 +87,11 @@ hexo.extend.filter.register('after_post_render', (data) => {
 
 hexo.extend.generator.register('hexo-blog-encrypt', () => [
   {
-    'data': () => fs.createReadStream(path.resolve(__dirname, `lib/hbe.style.css`)),
-    'path': `css/hbe.style.css`,
+    data: () => fs.createReadStream(path.resolve(__dirname, `lib/hbe.style.css`)),
+    path: `css/hbe.style.css`,
   },
   {
-    'data': () => fs.createReadStream(path.resolve(__dirname, 'lib/hbe.js')),
-    'path': 'js/hbe.js',
+    data: () => fs.createReadStream(path.resolve(__dirname, 'lib/hbe.js')),
+    path: 'js/hbe.js',
   },
 ]);
